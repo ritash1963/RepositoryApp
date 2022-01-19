@@ -8,6 +8,7 @@ using API.Entities;
 using API.DTOs;
 using API.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using AutoMapper;
 
 namespace API.Controllers
 {
@@ -17,10 +18,13 @@ namespace API.Controllers
     {
        private readonly DataContext _context;
        private readonly ITokenService _tokenService;
-       public RepositoryController(DataContext context, ITokenService tokenService) 
+       private readonly IMapper _mapper;
+
+       public RepositoryController(DataContext context, ITokenService tokenService, IMapper mapper) 
        {
           _context = context;
           _tokenService = tokenService;
+          _mapper = mapper;
        }
        
        // api/repository/mongoid_search
@@ -49,5 +53,34 @@ namespace API.Controllers
                      .ToListAsync()); 
         
        }
+
+        [AllowAnonymous] 
+       // [Authorize]
+        [HttpPost("mark")]
+        public async Task<IActionResult> MarkItem(MarkItemDto markItemDto)
+        {
+            var appUser = await _context.Users.FirstOrDefaultAsync(x => x.UserName == markItemDto.UserName);
+            var itemRep = await _context.Items.FirstOrDefaultAsync(x => x.Name == markItemDto.ItemName);
+            var markItem = await _context.MarkItems.FirstOrDefaultAsync(x => x.UserName == markItemDto.UserName 
+              && x.ItemName == markItemDto.ItemName );
+
+             if (appUser == null)
+                return BadRequest("User is not exists");
+
+             if (itemRep == null)
+                return BadRequest("Item is not exists");
+ 
+             if (markItem != null)
+                return BadRequest("Bookmark is already exists");
+            
+             var itemMarkForCreate = _mapper.Map<MarkItem>(markItemDto);
+            
+             await _context.MarkItems.AddAsync(itemMarkForCreate);
+
+             if (await _context.SaveChangesAsync() > 0)
+                return StatusCode(201);
+
+             return BadRequest("Could not bookmark item");
+        }
     }        
 }

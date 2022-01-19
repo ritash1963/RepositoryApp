@@ -10,7 +10,8 @@ namespace API.Helpers
     {
         public AutoMapperProfiles()
         {
-           
+            CreateMap<MarkItemDto,MarkItem>();
+            CreateMap<MarkItem,MarkItemDto>();
         }
     }
 }
